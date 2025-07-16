@@ -10,6 +10,7 @@ from ._youtube_converter import YouTubeConverter
 from ._ipynb_converter import IpynbConverter
 from ._bing_serp_converter import BingSerpConverter
 from ._pdf_converter import PdfConverter
+from ._pdf_enhanced_converter import EnhancedPdfConverter
 from ._docx_converter import DocxConverter
 from ._xlsx_converter import XlsxConverter, XlsConverter
 from ._pptx_converter import PptxConverter
@@ -33,6 +34,7 @@ __all__ = [
     "IpynbConverter",
     "BingSerpConverter",
     "PdfConverter",
+    "EnhancedPdfConverter",
     "DocxConverter",
     "XlsxConverter",
     "XlsConverter",
