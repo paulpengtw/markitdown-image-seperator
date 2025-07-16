@@ -1,248 +1,277 @@
-# MarkItDown
+# Enhanced MarkItDown PDF Converter with Figure/Table Extraction
 
-[![PyPI](https://img.shields.io/pypi/v/markitdown.svg)](https://pypi.org/project/markitdown/)
-![PyPI - Downloads](https://img.shields.io/pypi/dd/markitdown)
-[![Built by AutoGen Team](https://img.shields.io/badge/Built%20by-AutoGen%20Team-blue)](https://github.com/microsoft/autogen)
+This project enhances the standard `markitdown` library to extract figures and tables from academic PDFs while maintaining proper references in the converted markdown output.
 
-> [!TIP]
-> MarkItDown now offers an MCP (Model Context Protocol) server for integration with LLM applications like Claude Desktop. See [markitdown-mcp](https://github.com/microsoft/markitdown/tree/main/packages/markitdown-mcp) for more information.
+## Features
 
-> [!IMPORTANT]
-> Breaking changes between 0.0.1 to 0.1.0:
-> * Dependencies are now organized into optional feature-groups (further details below). Use `pip install 'markitdown[all]'` to have backward-compatible behavior. 
-> * convert\_stream() now requires a binary file-like object (e.g., a file opened in binary mode, or an io.BytesIO object). This is a breaking change from the previous version, where it previously also accepted text file-like objects, like io.StringIO.
-> * The DocumentConverter class interface has changed to read from file-like streams rather than file paths. *No temporary files are created anymore*. If you are the maintainer of a plugin, or custom DocumentConverter, you likely need to update your code. Otherwise, if only using the MarkItDown class or CLI (as in these examples), you should not need to change anything.
-
-MarkItDown is a lightweight Python utility for converting various files to Markdown for use with LLMs and related text analysis pipelines. To this end, it is most comparable to [textract](https://github.com/deanmalmgren/textract), but with a focus on preserving important document structure and content as Markdown (including: headings, lists, tables, links, etc.) While the output is often reasonably presentable and human-friendly, it is meant to be consumed by text analysis tools -- and may not be the best option for high-fidelity document conversions for human consumption.
-
-MarkItDown currently supports the conversion from:
-
-- PDF
-- PowerPoint
-- Word
-- Excel
-- Images (EXIF metadata and OCR)
-- Audio (EXIF metadata and speech transcription)
-- HTML
-- Text-based formats (CSV, JSON, XML)
-- ZIP files (iterates over contents)
-- Youtube URLs
-- EPubs
-- ... and more!
-
-## Why Markdown?
-
-Markdown is extremely close to plain text, with minimal markup or formatting, but still
-provides a way to represent important document structure. Mainstream LLMs, such as
-OpenAI's GPT-4o, natively "_speak_" Markdown, and often incorporate Markdown into their
-responses unprompted. This suggests that they have been trained on vast amounts of
-Markdown-formatted text, and understand it well. As a side benefit, Markdown conventions
-are also highly token-efficient.
-
-## Prerequisites
-MarkItDown requires Python 3.10 or higher. It is recommended to use a virtual environment to avoid dependency conflicts.
-
-With the standard Python installation, you can create and activate a virtual environment using the following commands:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-If using `uv`, you can create a virtual environment with:
-
-```bash
-uv venv --python=3.12 .venv
-source .venv/bin/activate
-# NOTE: Be sure to use 'uv pip install' rather than just 'pip install' to install packages in this virtual environment
-```
-
-If you are using Anaconda, you can create a virtual environment with:
-
-```bash
-conda create -n markitdown python=3.12
-conda activate markitdown
-```
+- **Automatic Figure/Table Detection**: Automatically detects images, figures, and table-like structures in PDFs
+- **Interactive Selection Interface**: GUI tool for manually selecting and refining detected items
+- **Organized Output Structure**: Creates clean folder structure with separate images directory
+- **Smart Image References**: Automatically inserts markdown image references in appropriate locations
+- **References Separation**: Extracts REFERENCES section to a separate markdown file
+- **High-Quality Image Extraction**: Saves figures and tables as high-resolution PNG images
 
 ## Installation
 
-To install MarkItDown, use pip: `pip install 'markitdown[all]'`. Alternatively, you can install it from the source:
+### Prerequisites
 
 ```bash
-git clone git@github.com:microsoft/markitdown.git
-cd markitdown
-pip install -e 'packages/markitdown[all]'
+# Install enhanced dependencies
+pip install pymupdf pillow tkinter
+
+# Install markitdown with PDF support
+pip install "markitdown[pdf]"
+```
+
+### Setup Enhanced Converter
+
+1. Clone the enhanced markitdown repository:
+```bash
+git clone /path/to/markitdown-image-seperator
+cd markitdown-image-seperator/packages/markitdown
+```
+
+2. Install in development mode:
+```bash
+pip install -e .
 ```
 
 ## Usage
 
-### Command-Line
-
-```bash
-markitdown path-to-file.pdf > document.md
-```
-
-Or use `-o` to specify the output file:
-
-```bash
-markitdown path-to-file.pdf -o document.md
-```
-
-You can also pipe content:
-
-```bash
-cat path-to-file.pdf | markitdown
-```
-
-### Optional Dependencies
-MarkItDown has optional dependencies for activating various file formats. Earlier in this document, we installed all optional dependencies with the `[all]` option. However, you can also install them individually for more control. For example:
-
-```bash
-pip install 'markitdown[pdf, docx, pptx]'
-```
-
-will install only the dependencies for PDF, DOCX, and PPTX files.
-
-At the moment, the following optional dependencies are available:
-
-* `[all]` Installs all optional dependencies
-* `[pptx]` Installs dependencies for PowerPoint files
-* `[docx]` Installs dependencies for Word files
-* `[xlsx]` Installs dependencies for Excel files
-* `[xls]` Installs dependencies for older Excel files
-* `[pdf]` Installs dependencies for PDF files
-* `[outlook]` Installs dependencies for Outlook messages
-* `[az-doc-intel]` Installs dependencies for Azure Document Intelligence
-* `[audio-transcription]` Installs dependencies for audio transcription of wav and mp3 files
-* `[youtube-transcription]` Installs dependencies for fetching YouTube video transcription
-
-### Plugins
-
-MarkItDown also supports 3rd-party plugins. Plugins are disabled by default. To list installed plugins:
-
-```bash
-markitdown --list-plugins
-```
-
-To enable plugins use:
-
-```bash
-markitdown --use-plugins path-to-file.pdf
-```
-
-To find available plugins, search GitHub for the hashtag `#markitdown-plugin`. To develop a plugin, see `packages/markitdown-sample-plugin`.
-
-### Azure Document Intelligence
-
-To use Microsoft Document Intelligence for conversion:
-
-```bash
-markitdown path-to-file.pdf -o document.md -d -e "<document_intelligence_endpoint>"
-```
-
-More information about how to set up an Azure Document Intelligence Resource can be found [here](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/how-to-guides/create-document-intelligence-resource?view=doc-intel-4.0.0)
-
-### Python API
-
-Basic usage in Python:
+### Basic Usage
 
 ```python
 from markitdown import MarkItDown
+from markitdown.converters import EnhancedPdfConverter
+import os
 
-md = MarkItDown(enable_plugins=False) # Set to True to enable plugins
-result = md.convert("test.xlsx")
-print(result.text_content)
+# Initialize MarkItDown with enhanced PDF converter
+markitdown = MarkItDown()
+
+# Replace the default PDF converter with enhanced version
+markitdown.register_converter(EnhancedPdfConverter(), priority=0.0)
+
+# Convert PDF with figure extraction
+output_dir = "./converted_paper"
+os.makedirs(output_dir, exist_ok=True)
+
+result = markitdown.convert(
+    "research_paper.pdf",
+    output_dir=output_dir
+)
+
+# The result will contain the main content
+print(result.markdown)
 ```
 
-Document Intelligence conversion in Python:
+### Command Line Usage
+
+```bash
+# Create output directory
+mkdir paper_output
+
+# Convert PDF with enhanced features
+python -m markitdown research_paper.pdf --output-dir paper_output --extract-images
+```
+
+## How It Works
+
+### 1. Text Reference Detection Phase
+- **Text Analysis**: Scans PDF text for references like "Figure 1", "Table 2", "Image 3"
+- **Smart Numbering**: Uses actual numbering from the PDF text (e.g., "Figure 2.1", "Table A.3")
+- **Reference Parsing**: Supports various formats including decimal numbering
+
+### 2. Interactive Manual Selection Phase
+When text references are found, an interactive GUI window opens:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Manual Figure/Table Selection                               │
+├─────────────────────────────────────────────────────────────┤
+│ Page: [1] / 10          [Previous] [Next]                  │
+├─────────────────────────────────────────────────────────────┤
+│                    │ Found References:                      │
+│   PDF Preview      │ ○ Figure 1 (Page 2)                   │
+│   (click & drag    │ ○ Table 1 (Page 3)                    │
+│    to select)      │ ✓ Figure 2 (Page 4)                   │
+│                    │                                        │
+│                    │ Selected Items:                        │
+│                    │ • Figure 2 (Page 4)                   │
+│                    │                                        │
+│                    │ [Remove Selected]                      │
+│                    │ [Finish Selection]                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Interactive Features:**
+- **Text-Based Detection**: Only finds items explicitly mentioned in text
+- **Manual Rectangle Selection**: Click and drag to select figure/table regions
+- **Precise Control**: You decide exactly what area to extract
+- **Visual Feedback**: Real-time rectangle drawing with red outline
+- **Page Navigation**: Jump to any page to find the referenced item
+
+### 3. Extraction and Processing Phase
+- **High-Quality Extraction**: Extracts selected items as PNG images at 3x resolution
+- **Smart Placement**: Inserts image references near relevant text mentions
+- **Reference Separation**: Moves REFERENCES section to separate file
+
+## Output Structure
+
+After processing, you'll get this organized structure:
+
+```
+paper_output/
+├── research_paper-converted.md      # Main content with image references
+├── research_paper-references-converted.md  # References section
+└── images/
+    ├── figure1.png                  # Extracted figure 1
+    ├── table1.png                   # Extracted table 1
+    ├── figure2.png                  # Extracted figure 2
+    └── ...
+```
+
+### Example Output Content
+
+**Main Markdown File (`research_paper-converted.md`):**
+```markdown
+# On the Dangers of Stochastic Parrots
+
+## Abstract
+The past 3 years of work in NLP have been characterized by...
+
+## Introduction
+One of the biggest trends in natural language processing...
+
+![Table1](./images/table1.png)
+Table 1: Overview of recent large language models
+
+As shown in Table 1, the models have grown significantly...
+
+![Figure1](./images/figure1.png)
+Figure 1: GPT-3's response to the prompt
+
+The example in Figure 1 illustrates GPT-3's ability...
+```
+
+**References File (`research_paper-references-converted.md`):**
+```markdown
+# REFERENCES
+
+[1] Hussein M Adam, Robert D Bullard, and Elizabeth Bell. 2001. Faces of environmental racism...
+
+[2] Chris Alberti, Kenton Lee, and Michael Collins. 2019. A BERT Baseline for the Natural Questions...
+```
+
+## Advanced Configuration
+
+### Customizing Detection Sensitivity
 
 ```python
-from markitdown import MarkItDown
+converter = EnhancedPdfConverter()
 
-md = MarkItDown(docintel_endpoint="<document_intelligence_endpoint>")
-result = md.convert("test.pdf")
-print(result.text_content)
+# Configure detection parameters
+config = {
+    "min_image_size": (100, 100),      # Minimum image dimensions
+    "min_table_rows": 3,               # Minimum rows for table detection
+    "image_resolution_factor": 3.0,    # Extraction resolution multiplier
+    "auto_select_all": False,          # Skip interactive selection
+}
+
+result = markitdown.convert("paper.pdf", **config)
 ```
 
-To use Large Language Models for image descriptions, provide `llm_client` and `llm_model`:
+### Batch Processing
 
 ```python
-from markitdown import MarkItDown
-from openai import OpenAI
+import glob
+from pathlib import Path
 
-client = OpenAI()
-md = MarkItDown(llm_client=client, llm_model="gpt-4o")
-result = md.convert("example.jpg")
-print(result.text_content)
+# Process multiple PDFs
+pdf_files = glob.glob("papers/*.pdf")
+
+for pdf_file in pdf_files:
+    paper_name = Path(pdf_file).stem
+    output_dir = f"converted/{paper_name}"
+    
+    result = markitdown.convert(pdf_file, output_dir=output_dir)
+    print(f"Processed: {paper_name}")
 ```
 
-### Docker
+## Troubleshooting
 
-```sh
-docker build -t markitdown:latest .
-docker run --rm -i markitdown:latest < ~/your-file.pdf > output.md
+### Common Issues
+
+1. **GUI Not Appearing**
+   ```bash
+   # Install tkinter if missing
+   sudo apt-get install python3-tk  # Ubuntu/Debian
+   brew install python-tk           # macOS
+   ```
+
+2. **Low Image Quality**
+   ```python
+   # Increase resolution factor
+   result = markitdown.convert("paper.pdf", image_resolution_factor=4.0)
+   ```
+
+3. **Missing Dependencies**
+   ```bash
+   pip install pymupdf pillow pdfminer.six
+   ```
+
+### Performance Notes
+
+- **Large PDFs**: Processing may take several minutes for documents with many images
+- **Memory Usage**: High-resolution extraction requires substantial RAM
+- **Interactive Mode**: GUI requires display access (not suitable for headless servers)
+
+## API Reference
+
+### EnhancedPdfConverter
+
+```python
+class EnhancedPdfConverter(DocumentConverter):
+    def convert(self, file_stream, stream_info, **kwargs):
+        """
+        Convert PDF with figure/table extraction.
+        
+        Args:
+            file_stream: PDF file stream
+            stream_info: File metadata
+            output_dir: Directory for output files
+            auto_select_all: Skip interactive selection
+            image_resolution_factor: Image extraction quality
+            min_image_size: Minimum dimensions for image detection
+            min_table_rows: Minimum rows for table detection
+        
+        Returns:
+            DocumentConverterResult with markdown content
+        """
+```
+
+### PDFImageExtractor
+
+```python
+class PDFImageExtractor:
+    def detect_figures_and_tables(self) -> List[Dict]:
+        """Detect potential figures and tables in PDF."""
+    
+    def show_interactive_selection(self) -> List[Dict]:
+        """Show GUI for manual selection."""
+    
+    def extract_selected_items(self) -> Dict[str, str]:
+        """Extract selected items as images."""
 ```
 
 ## Contributing
 
-This project welcomes contributions and suggestions. Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+To extend the functionality:
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+1. **Custom Detection Algorithms**: Modify `_detect_tables()` method
+2. **Enhanced GUI**: Improve the interactive selection interface  
+3. **Additional Formats**: Support for more figure/table types
+4. **OCR Integration**: Add text recognition for scanned documents
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+## License
 
-### How to Contribute
-
-You can help by looking at issues or helping review PRs. Any issue or PR is welcome, but we have also marked some as 'open for contribution' and 'open for reviewing' to help facilitate community contributions. These are ofcourse just suggestions and you are welcome to contribute in any way you like.
-
-<div align="center">
-
-|            | All                                                          | Especially Needs Help from Community                                                                                                      |
-| ---------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Issues** | [All Issues](https://github.com/microsoft/markitdown/issues) | [Issues open for contribution](https://github.com/microsoft/markitdown/issues?q=is%3Aissue+is%3Aopen+label%3A%22open+for+contribution%22) |
-| **PRs**    | [All PRs](https://github.com/microsoft/markitdown/pulls)     | [PRs open for reviewing](https://github.com/microsoft/markitdown/pulls?q=is%3Apr+is%3Aopen+label%3A%22open+for+reviewing%22)              |
-
-</div>
-
-### Running Tests and Checks
-
-- Navigate to the MarkItDown package:
-
-  ```sh
-  cd packages/markitdown
-  ```
-
-- Install `hatch` in your environment and run tests:
-
-  ```sh
-  pip install hatch  # Other ways of installing hatch: https://hatch.pypa.io/dev/install/
-  hatch shell
-  hatch test
-  ```
-
-  (Alternative) Use the Devcontainer which has all the dependencies installed:
-
-  ```sh
-  # Reopen the project in Devcontainer and run:
-  hatch test
-  ```
-
-- Run pre-commit checks before submitting a PR: `pre-commit run --all-files`
-
-### Contributing 3rd-party Plugins
-
-You can also contribute by creating and sharing 3rd party plugins. See `packages/markitdown-sample-plugin` for more details.
-
-## Trademarks
-
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
-trademarks or logos is subject to and must follow
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
+This project extends the MIT-licensed `markitdown` library with additional features for academic document processing.
